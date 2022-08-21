@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="subWebsiteLayout.css">
+<title>
+    PhysicalExperment
+</title>
+</head>
+<body>
+    <h1>卢瑟福散射</h1>
+    <hr> 
+    <p id="upload_tip_id"> 请选择要上传的文件 </p>
+    <input type="file" multiple="multiple" accept=".bhc" id="file">
+    <p>文件输出模式：</p>
+    <input type="radio" name="fileType" id="row">行
+    <br>
+    <input type="radio" name="fileType" id="line">列
+    </a>
+    <script>
+        function download(filename, text) {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+            
+            element.style.display = 'none';
+            document.body.appendChild(element);
+ 
+            element.click();
+ 
+            document.body.removeChild(element);
+        }
+
+        const file = document.querySelector("#file");
+        const readerfile=(file)=>{
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.addEventListener("load",(event)=>{
+                    resolve(event.target.result);
+                });
+                reader.readAsArrayBuffer(file);
+            })
+        }
+        file.addEventListener("change",async(event)=>{
+            const dataLength = 128;
+            var finalResult = new String();
+
+            if(document.getElementById('line').checked==true){
+                finalResult += '角度\t计数率\t误差\n';
+                for (let fileIndex = 0; fileIndex < file.files.length; fileIndex++) {
+                    const title = file.files[fileIndex].name;
+                    angle_ = title.substring(0,title.indexOf("_"))
+                    angle = 0;
+                    if (angle_[0]=='m') {
+                        angle = -Number(angle_.substring(1,angle_.length));
+                    } else {
+                        angle = Number(angle_.substring(1,angle_.length));
+                    }
+                    time_ = title.substring(title.indexOf("_")+1,title.indexOf("s"));
+                    time = Number(time_);
+                    console.log(angle);
+                    console.log(time);
+                    const data = await readerfile(file.files[fileIndex]);
+                    const dataList =new Float32Array(data.slice(200,712));
+                    console.log(dataList);
+                    var sum = 0.0;
+                    for (let dataIndex = 0; dataIndex < dataList.length; dataIndex++) {
+                        sum += dataList[dataIndex];
+                    }
+                    console.log(sum);
+                    count = sum/time;
+                    console.log(count);
+                    finalResult += angle + '\t';
+                    finalResult += count + '\t';
+                    finalResult += (count)/(sum**(1/2)) +'\n'
+                }
+            }
+
+            if(document.getElementById('row').checked==true){
+                finalResult += '角度\t'
+                for (let fileIndex = 0; fileIndex < file.files.length; fileIndex++) {
+                    const title = file.files[fileIndex].name;
+                    angle_ = title.substring(0,title.indexOf("_"))
+                    angle = 0;
+                    if (angle_[0]=='m') {
+                        angle = -Number(angle_.substring(1,angle_.length));
+                    } else {
+                        angle = Number(angle_.substring(1,angle_.length));
+                    }
+                    finalResult += angle + '\t';
+                }
+                finalResult += '\n';
+                finalResult += '计数率\t'
+                dataError = new Float64Array(file.files.length);
+                for (let fileIndex = 0; fileIndex < file.files.length; fileIndex++) {
+                    const title = file.files[fileIndex].name;
+                    time_ = title.substring(title.indexOf("_")+1,title.indexOf("s"));
+                    time = Number(time_);
+                    const data = await readerfile(file.files[fileIndex]);
+                    const dataList =new Float32Array(data.slice(200,712));
+                    console.log(dataList);
+                    var sum = 0.0;
+                    for (let dataIndex = 0; dataIndex < dataList.length; dataIndex++) {
+                        sum += dataList[dataIndex];
+                    }
+                    count = sum/time;
+                    dataError[fileIndex] = (count)/(sum**(1/2))
+                    finalResult += count + '\t';
+                }
+                finalResult += '\n';
+                finalResult += '误差\t';
+                for (let fileIndex = 0; fileIndex < file.files.length; fileIndex++) {
+                    finalResult += dataError[fileIndex] + '\t';
+                }
+                finalResult += '\n';
+            }
+            
+            download("finalResult.txt",finalResult)
+
+        });
+    </script>
+    
+</body>
+</html>
